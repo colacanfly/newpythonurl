@@ -16,7 +16,8 @@
 1. conf文件夹下为配置文件
 2. data下是所有的遍历得来的文件,代码按基金编号顺序遍历
 3. log下为日志信息
-4. src下为代码
+4. src下test.py为主要代码
+5. src下config.py是自定义模块，作用为读取配置文件信息，并将其存入词典
 
 使用说明
 >运行：/newpythonurl/src/ python test.py

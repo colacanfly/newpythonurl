@@ -9,34 +9,34 @@ import time
 import logging
 import config
 
-#输出日志
+
 def get_log():
     filelog="../log/logger.log"
     logging.basicConfig(filename = filelog, level = logging.DEBUG)
     logging.debug("this is a debug msg!")
-#输出遍历文件
+'''
+输出日志到../log/logger.log文件
+'''
+
+
 def dump_file(stri,i):
     out_file=open("../data/traverse/fund"+str(i)+".txt",'w')
     out_file.write(stri)
     out_file.close()
-#输出排序后列表到文件
+'''
+创建文件按顺序将遍历到的文件输入到文件中
+'''
+
+
 def sort_file(array,i):
     list_output_file=open("../data/list/"+str(i)+".txt",'w')
     list_output_file.write(str(array))
     list_output_file.close()
+'''
+对信息排完序后将其输入到文件中
+'''
 
-#读取时间
-def get_time(dict_file):
-    var_time=dict_file["begin_time"]
-    try:
-        time_stamp=time.mktime(time.strptime(var_time,"%Y %m %d %H:%M:%S"))
-    except ValueError:
-        print "Please enter the correct time format!"
-    else:
-        return time_stamp
-        
 
-#基金网页
 def crawl_url_fund(fund_url):
     crawl_information=urllib.urlopen(fund_url)
     crawl_information_read=crawl_information.read()
@@ -48,16 +48,11 @@ def crawl_url_fund(fund_url):
         array_forfundnumber.append(list_worth[i][0])
     dump_file(crawl_information_read,0)
     return array_forfundnumber
+'''
+访问基金总网页，并返回每个基金对应的序号
+'''
 
-#获取时间戳起始位置
-def get_time_begin_position(fund_number_list,time):
-    fund_number_lastlist=[]
-    for i in range(len(fund_number_list)):
-        if fund_number_list[i][0]/1000>time:
-            fund_number_lastlist.append(fund_number_list[i])
-    return fund_number_lastlist
 
-#每个及奖金对应的网页,得到净值数据
 def crawl_url_fund_number(fund_number_url,i):
     time.sleep(0.5)
     try:
@@ -74,24 +69,35 @@ def crawl_url_fund_number(fund_number_url,i):
             list_worth_string=data_acworthtrend.group(1)
             list_worth=json.loads(list_worth_string)
             return list_worth
+'''
+访问每个基金对应的网页找到净值数据返回
+如果网页为空返回空
+'''
 
-#读取基金网页
+
 def get_fund_url(dict_file):
     fund_url=dict_file["fundcode_search_url"]
     array_forfundnumber=crawl_url_fund(fund_url)
     return array_forfundnumber
-#处理基金网页
+'''
+读取配置信息中总基金网页地址
+'''
+
 def fund_number_url_deal(fund_number_url):
     deal_url_array=fund_number_url.split("%")
     return deal_url_array[0]
-#读取每个基金对应的网页
+'''
+处理基金信号对应地址找出公有部分
+'''
+
+
 def get_fund_number_url(dict_file):
     var_url=dict_file["pingzhongdata_url"]
     fund_number_url_head=fund_number_url_deal(var_url)
     array_forfundnumber=get_fund_url(dict_file)
     time=get_time(dict_file)
     print len(array_forfundnumber)
-    for i in range(6160,len(array_forfundnumber)):
+    for i in range(len(array_forfundnumber)):
         fund_number_url=fund_number_url_head+str(array_forfundnumber[i])+".js"
         list_middle=crawl_url_fund_number(fund_number_url,i)
         if list_middle==None:
@@ -104,7 +110,35 @@ def get_fund_number_url(dict_file):
                 print "time out"
             else:
                 sort_file(sort_variance_fund,i)
-#获得平均值
+'''
+访问每个基金对应的网页
+'''
+
+
+def get_time(dict_file):
+    var_time=dict_file["begin_time"]
+    try:
+        time_stamp=time.mktime(time.strptime(var_time,"%Y %m %d %H:%M:%S"))
+    except ValueError:
+        print "Please enter the correct time format!"
+    else:
+        return time_stamp
+'''
+读取配置文件中的时间要求，并返回
+'''
+
+
+def get_time_begin_position(fund_number_list,time):
+    fund_number_lastlist=[]
+    for i in range(len(fund_number_list)):
+        if fund_number_list[i][0]/1000>time:
+            fund_number_lastlist.append(fund_number_list[i])
+    return fund_number_lastlist
+'''
+得到净值数据中时间戳的起始位置
+'''
+
+
 def get_avg(fund_number_lastlist):
     sum=0
     if len(fund_number_lastlist)==0:
@@ -114,7 +148,11 @@ def get_avg(fund_number_lastlist):
             sum+=fund_number_lastlist[i][1]
         avg=sum/len(fund_number_lastlist)
         return avg
-#方差排序
+'''
+获得数据平均值
+'''
+
+
 def sort_variance(fund_number_lastlist):
     avg=get_avg(fund_number_lastlist)
     if avg==None:
@@ -127,6 +165,11 @@ def sort_variance(fund_number_lastlist):
                     fund_number_lastlist[j]=fund_number_lastlist[j+1]
                     fund_number_lastlist[j+1]=temp
         return fund_number_lastlist
+'''
+对数据按方差排序
+'''
+
+
 def main():
     i=0
     get_log()
@@ -134,6 +177,8 @@ def main():
     properties=config.Properties()
     dict_file=properties.get_colon_segment_file(conf_position)
     get_fund_number_url(dict_file)
+
+
 if __name__ == "__main__":
     main()
     

@@ -8,7 +8,7 @@ class Properties:
         list_forfile=[]
         for line in lines:
             try:
-                list_line=line.strip('\n').split(":",1)
+                list_line=line.strip('\n').split(" : ",1)
             except Exception:
                 print "配置文件错误"
             else:

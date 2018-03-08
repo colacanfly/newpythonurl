@@ -14,10 +14,11 @@ def get_log():
     '''
     输出日志到../log/logger.log文件
     '''
-    filelog="../log/logger.log"
-    logging.basicConfig(filename = filelog, level = logging.DEBUG)
-    logging.debug("this is a debug msg!")
-
+    logging.basicConfig(level=logging.DEBUG,
+                format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
+                datefmt='%a, %d %b %Y %H:%M:%S',
+                filename='../log/logger.log',
+                filemode='w')
 
 
 def dump_file(stri,i):
@@ -39,12 +40,10 @@ def sort_file(sort_fund):
     output_file.close()
 
 
-
 def crawl_url_fund(fund_name_list,fund_url):
     '''
     访问基金总网页，并返回每个基金对应的序号
     '''
-    print fund_url
     crawl_information=urllib.urlopen(fund_url)
     crawl_information_read=crawl_information.read()
     get_fund=re.search(r"var r =(.*?);",crawl_information_read)
@@ -58,42 +57,38 @@ def crawl_url_fund(fund_name_list,fund_url):
     return array_forfundnumber
 
 
-def crawl_url_fund_number(fund_number_url_list,fund_name_list,array_forfundnumber,fund_list,time_begin):
+def crawl_url_fund_number(ThreadName,fund_number_url_list,fund_name_list,array_forfundnumber,fund_list,time_begin):
     '''
     访问每个基金对应的网页找到净值数据返回
     如果网页为空返回空
     '''
-    j=0
     for i in range(len(fund_number_url_list)):
         time.sleep(0.01)
         try:
             crawl_information=urllib.urlopen(fund_number_url_list[i])
         except Exception:
-            j+=1
             continue
         else:
+            get_log()
+            logging.debug("\""+ThreadName+"\":success")
             crawl_information_read=crawl_information.read()
             dump_file(crawl_information_read,i)
             data_acworthtrend=re.search(r"var Data_ACWorthTrend =(.*?);",crawl_information_read)
             if data_acworthtrend==None:
-                j+=1
                 continue
             else:
                 list_worth_string=data_acworthtrend.group(1)
                 list_worth=json.loads(list_worth_string)
             
                 if list_worth==None:
-                    j+=1
                     continue
                 else:
-                    print i
                     fund_number_lastlist=get_time_begin_position(list_worth,time_begin)
                     if fund_number_lastlist==None or fund_number_lastlist==[] :
                         continue
                     else:
                         fund_variance=get_variance(fund_number_lastlist)
                         everyfund_list=[array_forfundnumber[i],fund_name_list[i],fund_variance]
-                 
                         fund_list.append(everyfund_list)
 
 
@@ -115,19 +110,19 @@ def fund_number_url_deal(fund_number_url):
     return deal_url_array[0]
 
 
-def start_thread(fund_number_url_array1,fund_number_url_array2,fund_number_url_array3,time_begin,fund_name_list,array_forfundnumber,fund_list,fund_number_url_array):
+def start_thread(fund_number_url_array1,fund_number_url_array2,fund_number_url_array3,fund_name_list1,fund_name_list2,fund_name_list3,time_begin,array_forfundnumber1,array_forfundnumber2,array_forfundnumber3,fund_list):
     '''
     创建线程并启动
     '''
-    thread_forfund1=threading.Thread(target=crawl_url_fund_number,args=(fund_number_url_array,fund_name_list,array_forfundnumber,fund_list,time_begin))
-    #thread_forfund2=threading.Thread(target=crawl_url_fund_number,args=(fund_number_url_array2,fund_name_list,array_forfundnumber,fund_list,time_begin))
-    #thread_forfund3=threading.Thread(target=crawl_url_fund_number,args=(fund_number_url_array3,fund_name_list,array_forfundnumber,fund_list,time_begin))
+    thread_forfund1=threading.Thread(target=crawl_url_fund_number,args=("Thread-1",fund_number_url_array1,fund_name_list1,array_forfundnumber1,fund_list,time_begin))
+    thread_forfund2=threading.Thread(target=crawl_url_fund_number,args=("Thread-2",fund_number_url_array2,fund_name_list2,array_forfundnumber2,fund_list,time_begin))
+    thread_forfund3=threading.Thread(target=crawl_url_fund_number,args=("Thread-3",fund_number_url_array3,fund_name_list3,array_forfundnumber3,fund_list,time_begin))
     thread_forfund1.start()
-    #thread_forfund2.start()
-    #thread_forfund3.start()
+    thread_forfund2.start()
+    thread_forfund3.start()
     thread_forfund1.join()
-    #thread_forfund2.join() 
-    #thread_forfund3.join()    
+    thread_forfund2.join() 
+    thread_forfund3.join()    
 
 
 def get_fund_number_url(dict_file,fund_list):
@@ -140,21 +135,30 @@ def get_fund_number_url(dict_file,fund_list):
     array_forfundnumber=get_fund_url(dict_file,fund_name_list)
     time_begin=get_time(dict_file)
     print len(array_forfundnumber)
-    fund_number_url_array=[]
     fund_number_url_array1=[]
     fund_number_url_array2=[]
     fund_number_url_array3=[]
-    for i in range(100):
-
+    fund_name_list1=[]
+    fund_name_list2=[]
+    fund_name_list3=[]
+    array_forfundnumber1=[]
+    array_forfundnumber2=[]
+    array_forfundnumber3=[]
+    for i in range(len(array_forfundnumber)):
         fund_number_url=fund_number_url_head+str(array_forfundnumber[i])+".js"
-        fund_number_url_array.append(fund_number_url)
         if i%3==0:
+            fund_name_list1.append(fund_name_list[i])
             fund_number_url_array1.append(fund_number_url)
+            array_forfundnumber1.append(array_forfundnumber[i])
         elif i%3==1:
+            fund_name_list2.append(fund_name_list[i])
             fund_number_url_array2.append(fund_number_url)
+            array_forfundnumber2.append(array_forfundnumber[i])
         elif i%3==2:
+            fund_name_list3.append(fund_name_list[i])
             fund_number_url_array3.append(fund_number_url)
-    start_thread(fund_number_url_array1,fund_number_url_array2,fund_number_url_array3,time_begin,fund_name_list,array_forfundnumber,fund_list,fund_number_url_array)
+            array_forfundnumber3.append(array_forfundnumber[i])
+    start_thread(fund_number_url_array1,fund_number_url_array2,fund_number_url_array3,fund_name_list1,fund_name_list2,fund_name_list3,time_begin,array_forfundnumber1,array_forfundnumber2,array_forfundnumber3,fund_list)
 
 
 def get_time(dict_file):
@@ -217,15 +221,28 @@ def sort_variance(fund_list):
     '''
     for i in range(1,len(fund_list)):
         for j in range(0,len(fund_list)-1):
-            if fund_list[j][2]<fund_list[j+1][2]:
+            if fund_list[j][2]>fund_list[j+1][2]:
                 temp=fund_list[j]
                 fund_list[j]=fund_list[j+1]
                 fund_list[j+1]=temp
     return fund_list
 
 
+def change_ascii(sort_fund_list):
+    '''
+    改变列表中字符串的ascii格式
+    '''
+    sort_fund=[]
+    for i in range(len(sort_fund_list)):
+        sort_everyfund=[]
+        for j in range(2):
+            sort_everyfund.append(sort_fund_list[i][j].encode("utf-8"))
+        sort_everyfund.append(sort_fund_list[i][2])
+        sort_fund.append(sort_everyfund)
+    return sort_fund
+
+
 def main():
-    i=0
     conf_position="../conf/config.conf"
     properties=config.Properties()
     fund_list=[]
@@ -234,7 +251,8 @@ def main():
     sort_fund_list=sort_variance(fund_list)
     sort_fund=json.dumps(sort_fund_list, encoding="UTF-8", ensure_ascii=False)
     print sort_fund
-    #sort_file(sort_fund_list)
+    sort_fund=change_ascii(sort_fund_list)
+    sort_file(sort_fund)
 
 
 if __name__ == "__main__":
